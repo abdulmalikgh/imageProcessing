@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>image processing with web worker</title>
+    <style>
+        div{
+            margin:2em;
+        }
+     #input{
+         width:0;
+         height: 0;
+         overflow: hidden;
+     }
+     #input + label{
+         padding:10px;
+         margin:2em;
+         font-size:1.3em;
+         background-color:slateblue;
+         color:white;
+     }
+     #input:focus + label{
+         border:2px solid green;    
+     }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <input type="file" id="input" name="input">
+        <label for="input"> Upload Image</label>
+    </div>
+
+    <canvas id="preview">
+
+    </canvas>
+    <script>
+     const input = document.querySelector('#input');
+     const image = new Image();
+     const preview = document.querySelector('#preview');
+     const previewCtr = preview.getContext('2d');
+     const worker = new Worker('worker.js');
+
+     if(!window.Worker) {
+         console.log("unfortunately your browser does not support web workers")
+        }
+        
+     function applyFilter() {
+        const imageData = previewCtr.getImageData(0,0, preview.width,preview.height);
+        // sending message to worker for processing;
+        worker.postMessage(imageData,[imageData.data.buffer])
+     }
+
+     //receiving data from worker
+
+   worker.addEventListener('message', function(event) {
+       const imageData = event.data;
+       previewCtr.putImageData(imageData, 0,0)
+   })
+    input.addEventListener('change', e=> {
+        const file = e.target.files[0];
+        createImageBitmap(file)
+        .then( bitmap => {
+         preview.width = bitmap.width;
+         preview.height = bitmap.height;
+         previewCtr.drawImage(bitmap,0,0);
+         applyFilter()
+        })
+    })
+    </script>
+</body>
+</html>
